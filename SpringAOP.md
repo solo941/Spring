@@ -22,6 +22,10 @@
 
 切点（pointcut）：一个切面并不需要通知应用的所有连接点。切点有助于缩小切面所通知的连接点范围。切点的定义会匹配通知所要织入的一个或多个连接点。是选择切入的joinPoint的集合。
 
+AOP proxy: AOP代理对象，可以是JDK动态代理，也可以是CGLIB代理（ProxyTargetClass为true，使用CGLIB)
+
+Weaving : 织入，连接切面与目标对象或类型创建代理的过程 
+
 举个例子：
 
 ```
@@ -39,3 +43,47 @@ CGLIB基于继承，代理对象继承目标对象；JDK基于实现，代理对
 静态代理：Aspectj Aop
 
 完成代理后，spring容器中存在的是代理对象。
+
+## 通过AOP实现spring事务
+
+```java
+EnableTransactionManagement
+boolean proxyTargetClass() default false;
+->---------------------------------------
+ProxyTransactionManagementConfiguration
+public TransactionInterceptor transactionInterceptor()
+//拦截器的拦截方法，实现around类型的advice
+public Object invoke(MethodInvocation invocation) throws Throwable {
+		Class<?> targetClass = (invocation.getThis() != null ? AopUtils.getTargetClass(invocation.getThis()) : null);
+		return invokeWithinTransaction(invocation.getMethod(), targetClass, invocation::proceed);
+	}
+-》----------------------------------------------------------------
+    //创建事务->后置调用->提交事务或者回滚
+TransactionInfo txInfo = createTransactionIfNecessary(tm, txAttr, joinpointIdentification);
+
+			Object retVal;
+			try {
+				// This is an around advice: Invoke the next interceptor in the chain.
+				// This will normally result in a target object being invoked.
+				retVal = invocation.proceedWithInvocation();
+			}
+			catch (Throwable ex) {
+				// target invocation exception
+				completeTransactionAfterThrowing(txInfo, ex);
+				throw ex;
+			}
+			finally {
+				cleanupTransactionInfo(txInfo);
+			}
+			commitTransactionAfterReturning(txInfo);
+```
+
+## 常用注解
+
+- @EnableAspectJAutoProxy
+- @Aspect
+- @Pointcut
+- @Before
+- @After/@AfterReturning/@AfterThrowing
+- Around
+- Order
