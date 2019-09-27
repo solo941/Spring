@@ -237,3 +237,25 @@ bean中配置 init-method="init"
 
 2.@Primary告诉spring 优先选择哪一个POJO。
 
+## 多个bean或者配置文件之间的切换
+
+@Profile
+
+```java
+@Repository
+@Profile("dao1")
+
+@Repository
+@Profile("dao2")
+
+public static void main(String[] args) {
+        AnnotationConfigApplicationContext annotationConfigApplicationContext =
+                new AnnotationConfigApplicationContext();
+        annotationConfigApplicationContext.getEnvironment().setActiveProfiles("dao2");
+        annotationConfigApplicationContext.register(Spring.class);
+        annotationConfigApplicationContext.refresh();
+        annotationConfigApplicationContext.getBean(IndexDao.class).getClass().getSimpleName();
+    }
+```
+
+只使用需要的profile对应的bean。
