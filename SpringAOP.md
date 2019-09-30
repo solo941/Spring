@@ -173,13 +173,28 @@ public @interface Print {
     }
 ```
 
+### this
 
+匹配代理对象的类型
+
+### target
+
+匹配目标对象
 
 ## 实现
 
 动态代理：Spring Aop 共有两种方法JDK动态代理和CGLIB 动态代理
 
-CGLIB基于继承，代理对象继承目标对象；JDK基于实现，代理对象和目标对象实现同一接口。因此如果采用JDK动态代理，因此getBean需要获取接口的类文件。
+CGLIB基于继承，代理对象继承目标对象；JDK基于动态代理实现，代理对象和目标对象实现同一接口。因此如果采用JDK动态代理，因此getBean需要获取接口的类文件。
+
+问题：JDK动态代理为什么采用聚合接口而不是继承实现？
+
+因为java单继承，代理对象已经继承了Proxy对象，只能实现目标对象的接口。因此，在使用JDK动态代理时，annotationConfigApplicationContext拿到bean是proxy不等于目标对象，但是代理对象和目标对象实现了相同的接口。
+
+```
+@EnableAspectJAutoProxy(proxyTargetClass = true)  //使用CGlib
+否则使用JDK动态代理。
+```
 
 静态代理：Aspectj Aop
 
