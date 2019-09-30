@@ -2,9 +2,41 @@
 
 ## 定义
 
-借助Spring框架的帮助，业务模块被合理的纵向分割，彼此之间互相独立。而将这些纵向柱形的业务模块共同的，重复的部分横向切分放大，就称之为切面。在AOP中，描述切面的术语有通知（advice），切点（pointcut），连接点（join point）。
+### Aop是什么
 
-通知（advice）：它用于描述切面的目标 即切面必须要完成的工作。通知定义了切面是什么以及何时使用。advice共有5种类型：
+与OOP对比，面向切面，传统的OOP开发中的代码逻辑是自上而下的，而这些过程会产生一些横切性问题，这些横切性的问题和我们的住业务逻辑关系不大，这些横切性问题不会影响到主逻辑实现的，但是会散落到代码的各个部分，难以维护。AOP是处理一些横切性问题，AOP的编程思想就是把这些问题和主业务逻辑分开，达到与主业务逻辑解耦的目的。使代码的重用性和开发效率更高。
+
+### aop的应用场景
+
+1.日志记录
+
+2.权限验证
+
+3.效率检查
+
+4.事务管理
+
+5.exception
+
+### aop概念
+
+**aspect**:一定要给**spring**去管理  抽象  **aspectj-**>类  
+
+**pointcut**:切点表示连接点的集合  **-------------------**>           表
+
+PointCut告诉通知连接点在哪里，切点表达式决定 **JoinPoint** 的数量
+
+**Joinpoint**:连接点   目标对象中的方法 **----------------**>    记录
+
+JoinPoint是要关注和增强的方法，也就是我们要作用的点
+
+**Weaving** :把代理逻辑加入到目标对象上的过程叫做织入
+
+**target** 目标对象 原始对象
+
+**aop** **Proxy** 代理对象  包含了原始对象的代码和增加后的代码的那个对象
+
+**advice**:通知    (位置 + **logic**)，advice共有5种类型：
 
 1.前置通知（Before）：在目标方法被调用之前调用通知功能。
 
@@ -16,23 +48,132 @@
 
 5.环绕通知（Around）：通知包裹了被通知的方法，在被通知的方法调用之前和调用之后执行自定义的行为。
 
-连接点（join point）：
+## **springAop支持AspectJ**
 
-是在应用执行过程中能够插入切面的一个点。这个点可以是调用方法时、抛出异常时、甚至修改一个字段时。它是所有切入方法的集合。
+SpringAop借助aspectj语法，使用javaconfig实现对方法的增强
 
-切点（pointcut）：一个切面并不需要通知应用的所有连接点。切点有助于缩小切面所通知的连接点范围。切点的定义会匹配通知所要织入的一个或多个连接点。是选择切入的joinPoint的集合。
-
-AOP proxy: AOP代理对象，可以是JDK动态代理，也可以是CGLIB代理（ProxyTargetClass为true，使用CGLIB)
-
-Weaving : 织入，连接切面与目标对象或类型创建代理的过程 
-
-举个例子：
-
-```
-@Pointcut("execution(* * getName()")  
+```java
+@Configuration
+@ComponentScan("com")
+//一定要有
+@EnableAspectJAutoProxy
+public class Appconfig {
+}
 ```
 
-Pointcut定义了规则，说明在任何包中的任何类中都应该对getName()方法应用通知，连接点将是类中存在的所有getName()方法的列表，以便可以将通知应用于这些方法。
+```java
+//bean交给spring管理，两个注释一定要有
+@Component
+@Aspect
+public class UserAspectJ {
+    //切入点表达式由@Pointcut注释表示。切入点声明由两部分组成:
+    // 一个签名包含名称和任何参数，以及一个切入点表达式，该表达式确定我们对哪个方法执行感兴趣。
+    @Pointcut("execution(* com.Aspetj.dao.*.*(..))")
+    public void pointCut(){
+        System.out.println("point cut");
+    }
+    //申明before通知,在pointCut切入点前执行
+    @Before("com.Aspetj.config.UserAspectJ.pointCut()")
+    public void before(){
+        System.out.println("before");
+    }
+}
+```
+
+## JointPoint意义
+
+### execution
+
+execution(modifiers-pattern? ret-type-pattern declaring-type-pattern?name-pattern(param-pattern) throws-pattern?)
+
+这里问号表示当前项可以有也可以没有，其中各项的语义如下
+
+modifiers-pattern：方法的可见性，如**public**，**protected**；
+
+ret-type-pattern：方法的返回值类型，如int，void等；
+
+declaring-type-pattern：方法所在类的全路径名，如com.spring.Aspect；
+
+name-pattern：方法名类型，如buisinessService()；
+
+param-pattern：方法的参数类型，如java.lang.String；
+
+throws-pattern：方法抛出的异常类型，如java.lang.Exception；
+
+### within
+
+**问：execution和within的区别**
+
+within与execution相比，粒度更大，仅能实现到包和接口、类级别。而execution可以精确到方法的返回值，参数个数、修饰符、参数类型等
+
+### args
+
+args表达式的作用是匹配指定参数类型和指定参数数量的方法,与包名和类名无关。
+
+args匹配的是运行时传递给方法的参数类型， execution(* *(java.io.Serializable))匹配的是方法在声明时指定的方法参数类型。
+
+应用：两个方法，有参的不想增强，无参的增强
+
+```java
+@Repository
+public class IndexDao {
+    public void query(){
+        System.out.println("query");
+    }
+    public void query(String str){
+        System.out.println(str);
+    }
+}
+-----------------------------------------
+@Component
+@Aspect
+public class UserAspectJ {
+    //切入点表达式由@Pointcut注释表示。切入点声明由两部分组成:
+    // 一个签名包含名称和任何参数，以及一个切入点表达式，该表达式确定我们对哪个方法执行感兴趣。
+    @Pointcut("execution(* com.Aspetj.dao.*.*(..))")
+    public void pointCut(){
+        System.out.println("point cut");
+    }
+
+    @Pointcut("args(java.lang.String)")
+    public void pointCutArgs(){
+
+    }
+
+    //申明before通知,在pointCut切入点前执行
+    @Before("com.Aspetj.config.UserAspectJ.pointCut() && !pointCutArgs()")
+    public void before(){
+        System.out.println("before");
+    }
+}
+```
+
+### 自定义注解
+
+首先自定义注解
+
+```java
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Print {
+}
+```
+
+在Dao中使用注解，作用在增强的方法上，切点声明
+
+```java
+ @Pointcut("@annotation(com.Aspetj.anno.Print)")
+    public void pointCutAnnotation(){
+
+    }
+
+    //申明before通知,在pointCut切入点前执行
+    @Before("com.Aspetj.config.UserAspectJ.pointCutAnnotation()")
+    public void before(){
+        System.out.println("before");
+    }
+```
+
+
 
 ## 实现
 
@@ -77,6 +218,8 @@ TransactionInfo txInfo = createTransactionIfNecessary(tm, txAttr, joinpointIdent
 			}
 			commitTransactionAfterReturning(txInfo);
 ```
+
+
 
 ## 常用注解
 
